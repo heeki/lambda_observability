@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Example for Lambda logging
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  ParamEnv1:
+    Type: String
+    Default: "default1"
+  ParamEnv2:
+    Type: String
+    Default: "default2"
+Resources:
+  ExampleExecRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: '/service-role/'
+      Policies:
+        - PolicyName: cloudwatch-logs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource: 'arn:aws:logs:*:*:*'
+        - PolicyName: sqs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt ExampleQueue.Arn
+        - PolicyName: xray
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                  - xray:GetSamplingRules
+                  - xray:GetSamplingTargets
+                  - xray:GetSamplingStatisticSummaries
+                Resource: '*'
+  ExampleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Environment:
+        Variables:
+          ENV1: !Ref ParamEnv1
+          ENV2: !Ref ParamEnv2
+          QUEUE_URL: !Ref ExampleQueue
+      Handler: example.handler
+      Role: !GetAtt ExampleExecRole.Arn
+      Runtime: python3.8
+      Timeout: 60
+      Tracing: Active
+  ExampleLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ExampleFunction}"
+      RetentionInDays: 7
+  ExampleQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 60
+      VisibilityTimeout: 30
+Outputs:
+  OutExampleFunction:
+    Value: !Ref ExampleFunction
+  OutExampleFunctionArn:
+    Value: !GetAtt ExampleFunction.Arn
+  OutExampleQueueArn:
+    Value: !GetAtt ExampleQueue.Arn

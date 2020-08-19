@@ -1,0 +1,8 @@
+## directories
+.vscode/*
+build/*
+venv/*
+
+## files
+etc/execute_env.sh
+iac/example_output.yaml
