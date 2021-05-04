@@ -10,6 +10,10 @@ Globals:
 Parameters:
   pApiStage:
     Type: String
+  pVpcId:
+    Type: String
+  pSubnetIds:
+    Type: List<String>
 Resources:
   # APIGW
   Api:
@@ -80,6 +84,21 @@ Resources:
                   - xray:GetSamplingTargets
                   - xray:GetSamplingStatisticSummaries
                 Resource: '*'
+        - PolicyName: ec2-v2n
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - ec2:CreateNetworkInterface
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DeleteNetworkInterface
+              Resource: '*'
+  FnSGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Observability function"
+      VpcId: !Ref pVpcId
   # Lambda Producer
   FnProducer:
     Type: AWS::Serverless::Function
@@ -91,8 +110,12 @@ Resources:
       Handler: fn_producer.handler
       Layers:
         - !Ref LayerXray
+        - !Ref LayerRedis
       Role: !GetAtt FnRole.Arn
       Tracing: Active
+      VpcConfig:
+        SecurityGroupIds: [ !Ref FnSGroup ]
+        SubnetIds: !Ref pSubnetIds
   FnProducerLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -134,8 +157,15 @@ Resources:
     Properties:
       CompatibleRuntimes:
         - python3.8
-      ContentUri: ../tmp/layer
+      ContentUri: ../tmp/xray
       LayerName: xray-python38
+  LayerRedis:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      CompatibleRuntimes:
+        - python3.8
+      ContentUri: ../tmp/redis
+      LayerName: redis-python38
   # SQS
   Queue:
     Type: AWS::SQS::Queue

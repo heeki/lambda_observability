@@ -14,5 +14,7 @@ sam.invoke:
 	aws --profile ${PROFILE} lambda invoke --function-name ${OUT_FN} --invocation-type RequestResponse --payload file://etc/event.json --cli-binary-format raw-in-base64-out --log-type Tail tmp/fn.json | jq "." > tmp/response.json
 	cat tmp/response.json | jq -r ".LogResult" | base64 --decode
 
-layer:
-	pip install -r requirements.txt --target=tmp/layer/python --upgrade
+layer.xray:
+	pip install -r req_xray.txt --target=tmp/xray/python --upgrade
+layer.redis:
+	pip install -r req_redis.txt --target=tmp/redis/python --upgrade
