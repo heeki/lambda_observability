@@ -1,8 +1,11 @@
 ## directories
 .vscode/*
 build/*
+tmp/*
 venv/*
 
 ## files
-etc/execute_env.sh
-iac/example_output.yaml
+etc/environment.sh
+iac/*_output.yaml
+build.toml
+notes.md

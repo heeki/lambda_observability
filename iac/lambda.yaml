@@ -1,15 +1,19 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Example for Lambda logging
+Description: Lambda observability
 Transform: AWS::Serverless-2016-10-31
+Globals:
+  Function:
+    Runtime: python3.8
+    MemorySize: 128
+    Timeout: 10
+    Tracing: Active
 Parameters:
-  ParamEnv1:
+  pEnv1:
     Type: String
-    Default: "default1"
-  ParamEnv2:
+  pEnv2:
     Type: String
-    Default: "default2"
 Resources:
-  ExampleExecRole:
+  FnRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -41,7 +45,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - sqs:SendMessage
-                Resource: !GetAtt ExampleQueue.Arn
+                Resource: !GetAtt Queue.Arn
         - PolicyName: xray
           PolicyDocument:
             Version: '2012-10-17'
@@ -54,34 +58,40 @@ Resources:
                   - xray:GetSamplingTargets
                   - xray:GetSamplingStatisticSummaries
                 Resource: '*'
-  ExampleFunction:
+  Fn:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
       Environment:
         Variables:
-          ENV1: !Ref ParamEnv1
-          ENV2: !Ref ParamEnv2
-          QUEUE_URL: !Ref ExampleQueue
-      Handler: example.handler
-      Role: !GetAtt ExampleExecRole.Arn
-      Runtime: python3.8
-      Timeout: 60
-      Tracing: Active
-  ExampleLogGroup:
+          ENV1: !Ref pEnv1
+          ENV2: !Ref pEnv2
+          QUEUE_URL: !Ref Queue
+      Handler: fn.handler
+      Layers:
+        - !Ref LayerXray
+      Role: !GetAtt FnRole.Arn
+  FnLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${ExampleFunction}"
+      LogGroupName: !Sub "/aws/lambda/${Fn}"
       RetentionInDays: 7
-  ExampleQueue:
+  LayerXray:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      CompatibleRuntimes:
+        - python3.8
+      ContentUri: ../tmp/layer
+      LayerName: xray-python38
+  Queue:
     Type: AWS::SQS::Queue
     Properties:
       MessageRetentionPeriod: 60
       VisibilityTimeout: 30
 Outputs:
-  OutExampleFunction:
-    Value: !Ref ExampleFunction
-  OutExampleFunctionArn:
-    Value: !GetAtt ExampleFunction.Arn
-  OutExampleQueueArn:
-    Value: !GetAtt ExampleQueue.Arn
+  outFn:
+    Value: !Ref Fn
+  outFnArn:
+    Value: !GetAtt Fn.Arn
+  outQueueArn:
+    Value: !GetAtt Queue.Arn
