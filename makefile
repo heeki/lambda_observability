@@ -9,7 +9,7 @@ sam.package:
 sam.deploy:
 	sam deploy -t ${SAM_OUTPUT} --stack-name ${SAM_STACK} --parameter-overrides ${SAM_PARAMS} --capabilities CAPABILITY_NAMED_IAM
 sam.local.invoke:
-	sam local invoke --profile ${PROFILE} -t build/template.yaml --parameter-overrides ${SAM_PARAMS} --env-vars etc/environment.json -e etc/event_sched.json Fn --debug | jq
+	sam local invoke --profile ${PROFILE} -t ${SAM_TEMPLATE} --parameter-overrides ${SAM_PARAMS} --env-vars etc/environment.json -e etc/local.json FnProducer | jq
 sam.invoke:
 	aws --profile ${PROFILE} lambda invoke --function-name ${OUT_FN} --invocation-type RequestResponse --payload file://etc/event.json --cli-binary-format raw-in-base64-out --log-type Tail tmp/fn.json | jq "." > tmp/response.json
 	cat tmp/response.json | jq -r ".LogResult" | base64 --decode

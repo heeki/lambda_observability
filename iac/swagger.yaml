@@ -1,0 +1,25 @@
+openapi: 3.0.1
+info:
+  title: lambda-observability
+  description: Lambda Observability
+  version: 0.1.0
+
+paths:
+  /producer:
+    post:
+      summary: producer
+      description: initiate producer process
+      responses:
+        200:
+          description: ok
+        default:
+          description: error
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        payloadFormatVersion: 2.0
+        responses:
+          default:
+            statusCode: 200
+        type: AWS_PROXY
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnProducer.Arn}/invocations'

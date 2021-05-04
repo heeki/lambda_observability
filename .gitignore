@@ -5,7 +5,9 @@ tmp/*
 venv/*
 
 ## files
+etc/environment.json
 etc/environment.sh
+etc/local.json
 iac/*_output.yaml
 build.toml
 notes.md

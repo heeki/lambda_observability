@@ -8,11 +8,30 @@ Globals:
     Timeout: 10
     Tracing: Active
 Parameters:
-  pEnv1:
-    Type: String
-  pEnv2:
+  pApiStage:
     Type: String
 Resources:
+  # APIGW
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      AccessLogSetting:
+        DestinationArn: !GetAtt ApiLogGroup.Arn
+        Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", "requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod","routeKey":"$context.routeKey", "status":"$context.status","protocol":"$context.protocol", "responseLength":"$context.responseLength" }'
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            # Location: !Sub 's3://${swaggerBucket}/${swaggerKey}'
+            Location: swagger.yaml
+      StageName: !Ref pApiStage
+      TracingEnabled: true
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/observability-api-${Api}"
+      RetentionInDays: 7
+  # Lambda  
   FnRole:
     Type: AWS::IAM::Role
     Properties:
@@ -44,6 +63,8 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                  - sqs:DeleteMessage
+                  - sqs:ReceiveMessage
                   - sqs:SendMessage
                 Resource: !GetAtt Queue.Arn
         - PolicyName: xray
@@ -58,24 +79,30 @@ Resources:
                   - xray:GetSamplingTargets
                   - xray:GetSamplingStatisticSummaries
                 Resource: '*'
-  Fn:
+  FnProducer:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
       Environment:
         Variables:
-          ENV1: !Ref pEnv1
-          ENV2: !Ref pEnv2
           QUEUE_URL: !Ref Queue
-      Handler: fn.handler
+      Handler: fn_producer.handler
       Layers:
         - !Ref LayerXray
       Role: !GetAtt FnRole.Arn
-  FnLogGroup:
+  FnProducerLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${Fn}"
+      LogGroupName: !Sub "/aws/lambda/${FnProducer}"
       RetentionInDays: 7
+  FnProducerPerm:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt FnProducer.Arn
+      Principal: apigateway.amazonaws.com
+      Action: lambda:InvokeFunction
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*/*/*'
+  # Layers
   LayerXray:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -83,15 +110,18 @@ Resources:
         - python3.8
       ContentUri: ../tmp/layer
       LayerName: xray-python38
+  # SQS
   Queue:
     Type: AWS::SQS::Queue
     Properties:
       MessageRetentionPeriod: 60
       VisibilityTimeout: 30
 Outputs:
-  outFn:
-    Value: !Ref Fn
-  outFnArn:
-    Value: !GetAtt Fn.Arn
+  outFnProducer:
+    Value: !Ref FnProducer
+  outFnProducerArn:
+    Value: !GetAtt FnProducer.Arn
   outQueueArn:
     Value: !GetAtt Queue.Arn
+  outApi:
+    Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com"

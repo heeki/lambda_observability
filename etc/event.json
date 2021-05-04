@@ -1,7 +1,4 @@
 {
-    "body": {
-        "key1": "value1",
-        "key2": "value2",
-        "key3": "value3"    
-    }
+    "id": "1750b1f4-e67a-4ec4-a8d4-71de55a65f2b",
+    "message": "hello world"
 }
