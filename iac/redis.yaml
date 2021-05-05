@@ -2,31 +2,31 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Redis for Lambda observability
 Transform: AWS::Serverless-2016-10-31
 Parameters:
-  description:
+  pDescription:
     Type: String
     Default: observability-redis
-  vpcId:
+  pVpcId:
     Type: String
-  subnetIds:
+  pSubnetIds:
     Type: List<String>
-  ingressSG:
+  pIngressSG:
     Type: String
 Resources:
   RedisSubnets:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
-      Description: !Ref description
-      SubnetIds: !Ref subnetIds
+      Description: !Ref pDescription
+      SubnetIds: !Ref pSubnetIds
   RedisSGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Ref description
-      VpcId: !Ref vpcId
+      GroupDescription: !Ref pDescription
+      VpcId: !Ref pVpcId
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: 6379
         ToPort: 6379
-        SourceSecurityGroupId: !Ref ingressSG
+        SourceSecurityGroupId: !Ref pIngressSG
   Redis:
     Type: AWS::ElastiCache::CacheCluster
     Properties:
