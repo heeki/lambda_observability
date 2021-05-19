@@ -1,10 +1,11 @@
-import boto3
 import json
 import os
-import redis
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch_all
 from datetime import datetime
+from adapters.dynamodb import DDB
+from adapters.redis import Redis
+from adapters.sqs import SQS
 
 # function: helper
 def build_response(code, body):
@@ -22,49 +23,44 @@ def build_response(code, body):
     }
     return response
 
-# function: external calls
-def send_message(payload):
-    response = client.send_message(
-        QueueUrl=queue_url,
-        MessageBody=payload
-    )
-    return response
-
-def rset(k, v):
-    return redis_connection.set(k, json.dumps(v))
-
-def rget(k):
-    output = redis_connection.get(k)
-    output = json.loads(output.decode("utf-8")) if output is not None else None
-    return output
-
-def rdelete(k):
-    return redis_connection.delete(k)
-
 # function: lambda invoker handler
 def handler(event, context):
     print(json.dumps(event))
 
     body = json.loads(event["body"])
     event_id = body["id"]
+    event_body = body["message"]
     print(json.dumps(body))
-    response = send_message(json.dumps(body))
+    response = o_sqs.send(json.dumps(body))
     print(json.dumps(response))
     status = response["ResponseMetadata"]["HTTPStatusCode"]
     message_id = response["MessageId"]
 
-    now = datetime.today().isoformat()
-    subsegment = xray_recorder.begin_subsegment("Redis")
-    subsegment.put_annotation("EventId", event_id)
-    previous = rget(event_id)
-    rset(event_id, now) if redis_enabled else None
-    xray_recorder.end_subsegment()
+    # cache aside
+    if redis_enabled:
+        now = datetime.today().isoformat()
+        subsegment = xray_recorder.begin_subsegment("Redis")
+        subsegment.put_annotation("EventId", event_id)
+        previous = o_redis.get(event_id)
+        o_redis.set(event_id, now) if redis_enabled else None
+        xray_recorder.end_subsegment()
+    else:
+        previous = datetime.today().isoformat()
+        now = datetime.today().isoformat()
 
+    # dynamodb
+    item = {
+        "event_id": { "S": event_id },
+        "event_body": { "S": event_body }
+    }
+    o_ddb.put(item)
+
+    # response
     subsegment = xray_recorder.begin_subsegment("GenerateResponse")
     subsegment.put_annotation("MessageId", message_id)
     payload = {
         "event_id": event_id,
-        "event_body": body["message"],
+        "event_body": event_body,
         "sqs_message_id": message_id,
         "ts_previous": previous,
         "ts_current": now
@@ -74,19 +70,18 @@ def handler(event, context):
     xray_recorder.end_subsegment()
     return response
 
-# initialization, mapping
+# initialization: xray
 patch_all()
-client = boto3.client("sqs")
-queue_url = os.environ["QUEUE_URL"]
+
+# initialization: redis
 redis_enabled = os.environ["REDIS_ENABLED"] == "true"
 redis_endpoint = os.environ["REDIS_ENDPOINT"]
-try:
-    if redis_enabled:
-        redis_connection = redis.Redis(
-            host=redis_endpoint,
-            port=6379,
-            db=0,
-            socket_timeout=5
-        )
-except redis.ConnectionError as e:
-    print(e)
+o_redis = Redis(redis_endpoint, 5)
+
+# initialization: dynamodb
+ddb_table = os.environ["TABLE"]
+o_ddb = DDB(ddb_table)
+
+# initialization: sqs
+sqs_queue_url = os.environ["QUEUE_URL"]
+o_sqs = SQS(sqs_queue_url)

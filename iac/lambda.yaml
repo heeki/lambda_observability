@@ -39,6 +39,17 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/apigateway/observability-api-${Api}"
       RetentionInDays: 7
+  # DynamoDB
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: event_id
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: event_id
+          KeyType: HASH
   # Lambda Role
   FnRole:
     Type: AWS::IAM::Role
@@ -98,6 +109,22 @@ Resources:
               - ec2:DescribeNetworkInterfaces
               - ec2:DeleteNetworkInterface
               Resource: '*'
+        - PolicyName: dynamodb
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt Table.Arn
+  # Lambda Security Group
   FnSGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -113,6 +140,7 @@ Resources:
           QUEUE_URL: !Ref Queue
           REDIS_ENABLED: !Ref pRedisEnabled
           REDIS_ENDPOINT: !Ref pRedisEndpoint
+          TABLE: !Ref Table
       Handler: fn_producer.handler
       Layers:
         - !Ref LayerXray
@@ -187,3 +215,5 @@ Outputs:
     Value: !GetAtt Queue.Arn
   outApi:
     Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com"
+  outTable:
+    Value: !Ref Table
