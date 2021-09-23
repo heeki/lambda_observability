@@ -72,6 +72,8 @@ def handler(event, context):
 
 # initialization: xray
 patch_all()
+xray_daemon_address = os.environ["AWS_XRAY_DAEMON_ADDRESS"]
+print("AWS_XRAY_DAEMON_ADDRESS={}".format(xray_daemon_address))
 
 # initialization: redis
 redis_enabled = os.environ["REDIS_ENABLED"] == "true"
