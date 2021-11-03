@@ -24,3 +24,6 @@ redis.package:
 	sam package -t ${REDIS_TEMPLATE} --output-template-file ${REDIS_OUTPUT} --s3-bucket ${S3BUCKET}
 redis.deploy:
 	sam deploy -t ${REDIS_OUTPUT} --stack-name ${REDIS_STACK} --parameter-overrides ${REDIS_PARAMS} --capabilities CAPABILITY_NAMED_IAM
+
+describe.layer-xray-policy:
+	aws lambda get-layer-version-policy --layer-name xray-python3 --version-number 1 | jq -r '.Policy' | jq

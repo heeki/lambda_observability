@@ -203,6 +203,13 @@ Resources:
         - python3.9
       ContentUri: ../tmp/redis
       LayerName: redis-python3
+  # Layer Permissions
+  LayerXrayPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LayerXray
+      Principal: !Ref AWS::AccountId
   # SQS
   Queue:
     Type: AWS::SQS::Queue
