@@ -27,3 +27,9 @@ redis.deploy:
 
 describe.layer-xray-policy:
 	aws lambda get-layer-version-policy --layer-name xray-python3 --version-number 1 | jq -r '.Policy' | jq
+
+layer_only: layer_only.package layer_only.deploy
+layer_only.package:
+	sam package -t ${LAYER_TEMPLATE} --output-template-file ${LAYER_OUTPUT} --s3-bucket ${S3BUCKET_EUS1}
+layer_only.deploy:
+	sam deploy -t ${LAYER_OUTPUT} --region ${LAYER_REGION} --stack-name ${LAYER_STACK} --parameter-overrides ${LAYER_PARAMS} --capabilities CAPABILITY_NAMED_IAM

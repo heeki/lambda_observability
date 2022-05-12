@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda observability
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  # Layers
+  LayerXray:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      CompatibleRuntimes:
+        - python3.8
+        - python3.9
+      ContentUri: ../tmp/xray
+      LayerName: xray-python3
+  LayerRedis:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      CompatibleRuntimes:
+        - python3.8
+        - python3.9
+      ContentUri: ../tmp/redis
+      LayerName: redis-python3
+  # Layer Permissions
+  LayerXrayPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LayerXray
+      Principal: !Ref AWS::AccountId
+Outputs:
+  outLayerXray:
+    Value: !Ref LayerXray
+  outLayerRedis:
+    Value: !Ref LayerRedis
