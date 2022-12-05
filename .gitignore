@@ -7,6 +7,7 @@ venv/*
 ## files
 etc/environment.json
 etc/environment.sh
+etc/event_*.json
 etc/local.json
 iac/*_output.yaml
 build.toml

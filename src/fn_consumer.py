@@ -5,8 +5,7 @@ from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch_all
 
 # function: initialization
-def initialization():
-    patch_all()
+patch_all()
 
 # function: helper
 def build_response(code, body):
@@ -33,6 +32,3 @@ def handler(event, context):
     response = json.dumps(event)
     xray_recorder.end_subsegment()
     return response
-
-# initialization, mapping
-initialization()

@@ -7,6 +7,24 @@ from adapters.dynamodb import DDB
 from adapters.redis import Redis
 from adapters.sqs import SQS
 
+# initialization: xray
+patch_all()
+xray_daemon_address = os.environ["AWS_XRAY_DAEMON_ADDRESS"]
+print("AWS_XRAY_DAEMON_ADDRESS={}".format(xray_daemon_address))
+
+# initialization: redis
+redis_enabled = os.environ["REDIS_ENABLED"] == "true"
+redis_endpoint = os.environ["REDIS_ENDPOINT"]
+o_redis = Redis(redis_endpoint, 5)
+
+# initialization: dynamodb
+ddb_table = os.environ["TABLE"]
+o_ddb = DDB(ddb_table)
+
+# initialization: sqs
+sqs_queue_url = os.environ["QUEUE_URL"]
+o_sqs = SQS(sqs_queue_url)
+
 # function: helper
 def build_response(code, body):
     # headers for cors
@@ -69,21 +87,3 @@ def handler(event, context):
     print(json.dumps(response))
     xray_recorder.end_subsegment()
     return response
-
-# initialization: xray
-patch_all()
-xray_daemon_address = os.environ["AWS_XRAY_DAEMON_ADDRESS"]
-print("AWS_XRAY_DAEMON_ADDRESS={}".format(xray_daemon_address))
-
-# initialization: redis
-redis_enabled = os.environ["REDIS_ENABLED"] == "true"
-redis_endpoint = os.environ["REDIS_ENDPOINT"]
-o_redis = Redis(redis_endpoint, 5)
-
-# initialization: dynamodb
-ddb_table = os.environ["TABLE"]
-o_ddb = DDB(ddb_table)
-
-# initialization: sqs
-sqs_queue_url = os.environ["QUEUE_URL"]
-o_sqs = SQS(sqs_queue_url)

@@ -141,7 +141,8 @@ Resources:
           REDIS_ENABLED: !Ref pRedisEnabled
           REDIS_ENDPOINT: !Ref pRedisEndpoint
           TABLE: !Ref Table
-          AWS_XRAY_DAEMON_ADDRESS: "127.0.0.1:5000"
+          # for local invoke only
+          # AWS_XRAY_DAEMON_ADDRESS: "127.0.0.1:5000"
       Handler: fn_producer.handler
       Layers:
         - !Ref LayerXray
