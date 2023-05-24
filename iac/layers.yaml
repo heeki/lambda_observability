@@ -9,6 +9,7 @@ Resources:
       CompatibleRuntimes:
         - python3.8
         - python3.9
+        - python3.10
       ContentUri: ../tmp/xray
       LayerName: xray-python3
   LayerRedis:

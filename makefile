@@ -30,6 +30,6 @@ describe.layer-xray-policy:
 
 layer_only: layer_only.package layer_only.deploy
 layer_only.package:
-	sam package -t ${LAYER_TEMPLATE} --output-template-file ${LAYER_OUTPUT} --s3-bucket ${S3BUCKET_EUS1}
+	sam package -t ${LAYER_TEMPLATE} --output-template-file ${LAYER_OUTPUT} --s3-bucket ${S3BUCKET} --s3-prefix ${LAYER_STACK}
 layer_only.deploy:
 	sam deploy -t ${LAYER_OUTPUT} --region ${LAYER_REGION} --stack-name ${LAYER_STACK} --parameter-overrides ${LAYER_PARAMS} --capabilities CAPABILITY_NAMED_IAM
